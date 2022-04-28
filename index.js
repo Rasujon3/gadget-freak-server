@@ -23,6 +23,7 @@ async function run() {
     await client.connect();
     console.log("DB Connected");
     const productCollection = client.db(`gadgetFreak`).collection(`products`);
+    const orderCollection = client.db(`gadgetFreak`).collection(`orders`);
 
     app.post("/login", async (req, res) => {
       const email = req.body;
@@ -44,6 +45,37 @@ async function run() {
       if (email === decoded.email) {
         const result = await productCollection.insertOne(product);
         res.send(result);
+      } else {
+        res.send({ success: "Unauthorized Access" });
+      }
+    });
+
+    // GET all products
+    app.get("/products", async (req, res) => {
+      const query = {};
+      const cursor = productCollection.find(query);
+      const products = await cursor.toArray();
+      res.send(products);
+    });
+
+    app.post("/addOrder", async (req, res) => {
+      const orderInfo = req.body;
+      const result = await orderCollection.insertOne(orderInfo);
+      res.send(result);
+    });
+
+    app.get("/orderList", async (req, res) => {
+      const tokenInfo = req.headers.authorization;
+      console.log(tokenInfo);
+      const [email, accessToken] = tokenInfo.split(" ");
+      // verify token
+      const decoded = verifyToken(accessToken);
+
+      if (email === decoded.email) {
+        const query = { email: email };
+        const cursor = orderCollection.find(query);
+        const orders = await cursor.toArray();
+        res.send(orders);
       } else {
         res.send({ success: "Unauthorized Access" });
       }
